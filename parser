@@ -1,0 +1,64 @@
+package parser
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+)
+
+// ParseDifferencesFile парсит файл с различиями и возвращает карту таблиц с несоответствиями
+func ParseDifferencesFile(filePath string) (map[string]bool, error) {
+	differences := make(map[string]bool)
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var currentTable string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "Differences in Tables") {
+			parts := strings.Split(line, "[")
+			if len(parts) == 2 {
+				currentTable = strings.TrimRight(parts[1], "]:")
+				differences[currentTable] = true
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return differences, nil
+}
+
+// ExtractCreateScripts извлекает скрипты CREATE для таблиц с несоответствиями из базы эталона
+func ExtractCreateScripts(differences map[string]bool, outputFilePath string) error {
+	// Здесь нужно реализовать извлечение скриптов CREATE для таблиц с несоответствиями из базы эталона
+	// И записать их в outputFilePath
+
+	// Пример реализации:
+	for table := range differences {
+		// Здесь должен быть код для извлечения скрипта CREATE для каждой таблицы
+		createScript := fmt.Sprintf("CREATE TABLE %s (\n\tcolumn1 TYPE1,\n\tcolumn2 TYPE2\n);", table)
+
+		// Запись скрипта CREATE в файл
+		f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		if _, err := f.WriteString(fmt.Sprintf("CREATE SCRIPT FOR TABLE %s:\n%s\n\n", table, createScript)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
